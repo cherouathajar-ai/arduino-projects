@@ -1,0 +1,75 @@
+#include <Servo.h>
+
+// Servo
+Servo myServo;
+int servoPin = 9;
+
+// Joystick
+int joyX = A0;         // Horizontal axis
+
+// Ultrasonic Sensor
+int trigPin = 7;
+int echoPin = 6;
+
+// LEDs
+int greenLED = 4;
+int redLED = 5;
+
+// Buzzer
+int buzzerPin = 3;
+
+// Variables
+long duration;
+int distance;
+int servoAngle;
+
+void setup() {
+  // Servo
+  myServo.attach(servoPin);
+
+  // Pins
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  
+  pinMode(greenLED, OUTPUT);
+  pinMode(redLED, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  digitalWrite(greenLED, HIGH); // green LED ON at start
+}
+
+void loop() {
+
+  // ----- JOYSTICK → SERVO -----
+  int joyVal = analogRead(joyX);
+  servoAngle = map(joyVal, 0, 1023, 0, 180);
+  myServo.write(servoAngle);
+
+
+  // ----- ULTRASONIC MEASUREMENT -----
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = duration * 0.034 / 2; // convert to cm
+
+
+  // ----- BALL FALL DETECTION -----
+  if (distance > 20 || distance == 0) { 
+    // ball fell
+    digitalWrite(greenLED, LOW);
+    digitalWrite(redLED, HIGH);
+    tone(buzzerPin, 1000);  // buzzer ON
+  } else {
+    // ball safe
+    digitalWrite(greenLED, HIGH);
+    digitalWrite(redLED, LOW);
+    noTone(buzzerPin);
+  }
+
+  delay(50);
+}
