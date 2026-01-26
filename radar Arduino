@@ -1,0 +1,97 @@
+// Includes the Servo library
+#include <Servo.h>
+
+// Ultrasonic sensor pins
+const int trigPin = 9;
+const int echoPin = 10;
+
+// LED and Buzzer pins
+const int redLED = 5;
+const int greenLED = 6;
+const int buzzer = 7;
+
+// Servo pin
+const int servoPin = 3;
+
+// Detection distance (cm)
+const int detectDistance = 20;
+
+// Variables
+long duration;
+int distance;
+
+Servo myServo;
+
+void setup() {
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  pinMode(redLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+
+  Serial.begin(9600);
+
+  myServo.attach(servoPin);
+
+  digitalWrite(greenLED, HIGH); // Green ON at start
+}
+
+void loop() {
+
+  // Sweep from 15 to 165 degrees
+  for (int i = 15; i <= 165; i++) {
+    myServo.write(i);
+    delay(30);
+
+    distance = calculateDistance();
+    handleAlert(distance);
+
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(distance);
+    Serial.print(".");
+  }
+
+  // Sweep back from 165 to 15 degrees
+  for (int i = 165; i > 15; i--) {
+    myServo.write(i);
+    delay(30);
+
+    distance = calculateDistance();
+    handleAlert(distance);
+
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(distance);
+    Serial.print(".");
+  }
+}
+
+// Calculate distance function
+int calculateDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH, 30000); // timeout safety
+  distance = duration * 0.034 / 2;
+
+  return distance;
+}
+
+// LED + Buzzer logic
+void handleAlert(int dist) {
+  if (dist > 0 && dist <= detectDistance) {
+    digitalWrite(redLED, HIGH);
+    digitalWrite(greenLED, LOW);
+    digitalWrite(buzzer, HIGH);
+  } else {
+    digitalWrite(redLED, LOW);
+    digitalWrite(greenLED, HIGH);
+    digitalWrite(buzzer, LOW);
+  }
+}
