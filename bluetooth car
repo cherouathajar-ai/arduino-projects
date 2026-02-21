@@ -1,0 +1,125 @@
+#define CUSTOM_SETTINGS
+#define INCLUDE_GAMEPAD_MODULE
+#include <DabbleESP32.h>
+
+/* ================= MOTOR PINS ================= */
+// Right motor
+int enableRightMotor = 22;   // ENA
+int rightMotorPin1  = 21;   // IN1
+int rightMotorPin2  = 19;   // IN2
+
+// Left motor
+int enableLeftMotor = 23;   // ENB
+int leftMotorPin1   = 18;   // IN3
+int leftMotorPin2   = 5;   // IN4
+
+/* ================= EXTRA ================= */
+#define IR_SENSOR 12
+#define BUZZER    2
+
+/* ================= PWM ================= */
+#define MAX_MOTOR_SPEED 255
+const int PWMFreq = 1000;
+const int PWMResolution = 8;
+const int rightMotorPWMChannel = 0;
+const int leftMotorPWMChannel  = 1;
+
+/* ================= MOTOR FUNCTION ================= */
+void rotateMotor(int rightSpeed, int leftSpeed)
+{
+  // Right motor
+  if (rightSpeed > 0) {
+    digitalWrite(rightMotorPin1, HIGH);
+    digitalWrite(rightMotorPin2, LOW);
+  } else if (rightSpeed < 0) {
+    digitalWrite(rightMotorPin1, LOW);
+    digitalWrite(rightMotorPin2, HIGH);
+  } else {
+    digitalWrite(rightMotorPin1, LOW);
+    digitalWrite(rightMotorPin2, LOW);
+  }
+
+  // Left motor
+  if (leftSpeed > 0) {
+    digitalWrite(leftMotorPin1, HIGH);
+    digitalWrite(leftMotorPin2, LOW);
+  } else if (leftSpeed < 0) {
+    digitalWrite(leftMotorPin1, LOW);
+    digitalWrite(leftMotorPin2, HIGH);
+  } else {
+    digitalWrite(leftMotorPin1, LOW);
+    digitalWrite(leftMotorPin2, LOW);
+  }
+
+  ledcWrite(rightMotorPWMChannel, abs(rightSpeed));
+  ledcWrite(leftMotorPWMChannel, abs(leftSpeed));
+}
+
+/* ================= SETUP PINS ================= */
+void setUpPinModes()
+{
+  pinMode(enableRightMotor, OUTPUT);
+  pinMode(rightMotorPin1, OUTPUT);
+  pinMode(rightMotorPin2, OUTPUT);
+
+  pinMode(enableLeftMotor, OUTPUT);
+  pinMode(leftMotorPin1, OUTPUT);
+  pinMode(leftMotorPin2, OUTPUT);
+
+  pinMode(IR_SENSOR, INPUT);
+  pinMode(BUZZER, OUTPUT);
+
+  // PWM (ESP32 core 2.x ONLY)
+  ledcSetup(rightMotorPWMChannel, PWMFreq, PWMResolution);
+  ledcSetup(leftMotorPWMChannel, PWMFreq, PWMResolution);
+
+  ledcAttachPin(enableRightMotor, rightMotorPWMChannel);
+  ledcAttachPin(enableLeftMotor, leftMotorPWMChannel);
+
+  rotateMotor(0, 0);
+}
+
+/* ================= SETUP ================= */
+void setup()
+{
+  setUpPinModes();
+  Dabble.begin("MyBluetoothCar");
+}
+
+/* ================= LOOP ================= */
+void loop()
+{
+  int rightSpeed = 0;
+  int leftSpeed  = 0;
+
+  Dabble.processInput();
+
+  // IR obstacle detected → STOP + BUZZER
+  if (digitalRead(IR_SENSOR) == LOW) {
+    rotateMotor(0, 0);
+    digitalWrite(BUZZER, HIGH);
+    return;
+  } else {
+    digitalWrite(BUZZER, LOW);
+  }
+
+  if (GamePad.isUpPressed()) {
+    rightSpeed = MAX_MOTOR_SPEED;
+    leftSpeed  = MAX_MOTOR_SPEED;
+  }
+  if (GamePad.isDownPressed()) {
+    rightSpeed = -MAX_MOTOR_SPEED;
+    leftSpeed  = -MAX_MOTOR_SPEED;
+  }
+  if (GamePad.isLeftPressed()) {
+    rightSpeed = MAX_MOTOR_SPEED;
+    leftSpeed  = -MAX_MOTOR_SPEED;
+  }
+  if (GamePad.isRightPressed()) {
+    rightSpeed = -MAX_MOTOR_SPEED;
+    leftSpeed  = MAX_MOTOR_SPEED;
+  }
+
+  rotateMotor(rightSpeed, leftSpeed);
+}
+
